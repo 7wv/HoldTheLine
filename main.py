@@ -7,9 +7,6 @@ q_elasticity = 2
 p = np.array([1, 1.5, 1, 3, 7])
 n = np.array([20.1, 19.9, 10, 5, 5])
 num_agents = n.sum()
-_ = [ 10*10*1, 2*2*1.5, 8*8*1, 8*8*3, 4*4*7 ]
-e_q_scale = np.array([ 1/_[i] for i in range(len(_)) ])
-e_p_scale = np.array([ 1/10, 1.5/2, 1/8, 3/8, 7/4 ])
 
 recipe_init = [ [10.0, -3, -8, -8, -4], [-2, 2, 0, 0, 0], [0, 0, 8, -16, 0], [0, 0, 0, 8, -8], [-1, 0, 0, 0, 4.0] ]
 recipe_low_ore = [ [10.0, -3, -8, -8, -4], [-2, 2, 0, 0, 0], [0, 0, 6, -16, 0], [0, 0, 0, 8, -8], [-1, 0, 0, 0, 4.0] ]
@@ -17,50 +14,20 @@ recipe_fire = [ [10.0, -3, -8, -8, -4], [-2, 1, 0, 0, 0], [0, 0, 8, -16, 0], [0,
 recipe_feast = [ [15.0, -3, -8, -8, -4], [-2, 2, 0, 0, 0], [0, 0, 8, -16, 0], [0, 0, 0, 8, -8], [-1, 0, 0, 0, 4.0] ]
 recipe_famine = [ [8.0, -3, -8, -8, -4], [-2, 2, 0, 0, 0], [0, 0, 8, -16, 0], [0, 0, 0, 8, -8], [-1, 0, 0, 0, 4.0] ]
 
-def step_along_curve(R, x, slope) :
-    over = R.dot(x) # profit per agent or extra total goods
-    percent_change = over / R.diagonal() / x
-    return (1 + slope * percent_change * step_size)
-
+def step_along_curve(R, x, slope_sign) :
+    extra = R.dot(x) # profit per agent or extra total goods
+    percent_change = extra / R.diagonal() / x # scale by agent_prod
+    slope = slope_sign * percent_change * step_size
+    # equalize up and down to be same ratios and return
+    return [1+y if y >= 0 else 1/(1-y) for y in slope]
+    
 def run(p, n, recipe, num_rounds) :
     R_n = np.array(recipe)
     R_p = R_n.copy().T
-    agent_prod = R_n.diagonal()
     
     for round in range(num_rounds):
-        #print(R_n)
-        #print(n)
-        #print(R_n.dot(n))
-        oversupply = R_n.dot(n)
-        percent_change = oversupply / agent_prod / n
-        # print('n', n)
-        # print('p', p)
-        print('oversupply', oversupply)
-        #print('agent_prod', agent_prod)
-        # print('percent_change', percent_change)
-        #print('% * ss', percent_change * step_size)
-        #print('1- % * ss', 1 - percent_change * step_size)
-        print((1 - percent_change * step_size) == step_along_curve(R_n, n, -1))
-        p = p * (1 - percent_change * step_size)
-        #####n = n * (1 + percent_change * step_size)
-        #print('unnormal n', n)
-        #####n = n / n.sum() * num_agents
-        #print('n', n)
-        #print('p', p)
-        #print("-"*10)
-
-        profit = R_p.dot(p)
-        percent_change = profit / agent_prod / p
-        #print('n', n)
-        #print('p', p)
-        print('profit', profit)
-        #print('percent_change', percent_change)
-        #print('% * ss', percent_change * step_size)
-        #print('1- % * ss', 1 - percent_change * step_size)
-        #####p = p * (1 - percent_change * step_size)
-        print((1 + percent_change * step_size) == step_along_curve(R_p, p, +1))
-        n = n * (1 + percent_change * step_size)
-        #print('unnormal n', n)
+        p = p * step_along_curve(R_n, n, -1)
+        n = n * step_along_curve(R_p, p, +1)
         n = n / n.sum() * num_agents
         print("Num agents: ", n)
         print("Price:      ", p)
