@@ -17,6 +17,11 @@ recipe_fire = [ [10.0, -3, -8, -8, -4], [-2, 1, 0, 0, 0], [0, 0, 8, -16, 0], [0,
 recipe_feast = [ [15.0, -3, -8, -8, -4], [-2, 2, 0, 0, 0], [0, 0, 8, -16, 0], [0, 0, 0, 8, -8], [-1, 0, 0, 0, 4.0] ]
 recipe_famine = [ [8.0, -3, -8, -8, -4], [-2, 2, 0, 0, 0], [0, 0, 8, -16, 0], [0, 0, 0, 8, -8], [-1, 0, 0, 0, 4.0] ]
 
+def step_along_curve(R, x, slope) :
+    over = R.dot(x) # profit per agent or extra total goods
+    percent_change = over / R.diagonal() / x
+    return (1 + slope * percent_change * step_size)
+
 def run(p, n, recipe, num_rounds) :
     R_n = np.array(recipe)
     R_p = R_n.copy().T
@@ -35,6 +40,7 @@ def run(p, n, recipe, num_rounds) :
         # print('percent_change', percent_change)
         #print('% * ss', percent_change * step_size)
         #print('1- % * ss', 1 - percent_change * step_size)
+        print((1 - percent_change * step_size) == step_along_curve(R_n, n, -1))
         p = p * (1 - percent_change * step_size)
         #####n = n * (1 + percent_change * step_size)
         #print('unnormal n', n)
@@ -52,6 +58,7 @@ def run(p, n, recipe, num_rounds) :
         #print('% * ss', percent_change * step_size)
         #print('1- % * ss', 1 - percent_change * step_size)
         #####p = p * (1 - percent_change * step_size)
+        print((1 + percent_change * step_size) == step_along_curve(R_p, p, +1))
         n = n * (1 + percent_change * step_size)
         #print('unnormal n', n)
         n = n / n.sum() * num_agents
